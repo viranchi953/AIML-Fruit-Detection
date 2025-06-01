@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Fruit Detector</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .title {
+            font-size: 2.5rem;
+            color: #333;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1rem;
+        }
+
+        .upload-area {
+            border: 3px dashed #ddd;
+            border-radius: 15px;
+            padding: 40px 20px;
+            margin: 30px 0;
+            background: #f8f9fa;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-area:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+            transform: translateY(-2px);
+        }
+
+        .upload-area.dragover {
+            border-color: #4ecdc4;
+            background: #e8f8f5;
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .upload-text {
+            color: #666;
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            margin: 5px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-camera {
+            background: linear-gradient(45deg, #4ecdc4, #44a08d);
+            box-shadow: 0 4px 15px rgba(78, 205, 196, 0.3);
+        }
+
+        .btn-camera:hover {
+            box-shadow: 0 6px 20px rgba(78, 205, 196, 0.4);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .camera-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .camera-container {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            max-width: 90%;
+            max-height: 90%;
+            position: relative;
+        }
+
+        .camera-video {
+            width: 100%;
+            max-width: 400px;
+            border-radius: 10px;
+            background: #000;
+        }
+
+        .camera-controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .btn-capture {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a52);
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+        }
+
+        .btn-capture:hover {
+            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+        }
+
+        .btn-close {
+            background: linear-gradient(45deg, #95a5a6, #7f8c8d);
+            box-shadow: 0 4px 15px rgba(149, 165, 166, 0.3);
+        }
+
+        .btn-close:hover {
+            box-shadow: 0 6px 20px rgba(149, 165, 166, 0.4);
+        }
+
+        .loading {
+            display: none;
+            margin: 20px 0;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .result {
+            display: none;
+            margin-top: 30px;
+            padding: 25px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 15px;
+            color: white;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        }
+
+        .result-image {
+            max-width: 200px;
+            max-height: 200px;
+            border-radius: 10px;
+            margin: 15px auto;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .fruit-name {
+            font-size: 2rem;
+            font-weight: bold;
+            margin: 15px 0;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .confidence {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            opacity: 0.9;
+        }
+
+        .all-predictions {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+
+        .all-predictions h4 {
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+
+        .prediction-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+            padding: 5px 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+        }
+
+        .error {
+            color: #e74c3c;
+            background: #ffebee;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 4px solid #e74c3c;
+        }
+
+        .fruit-emojis {
+            font-size: 2rem;
+            margin: 20px 0;
+            opacity: 0.7;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+                margin: 10px;
+            }
+            
+            .title {
+                font-size: 2rem;
+            }
+            
+            .upload-area {
+                padding: 30px 15px;
+            }
+
+            .button-group {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .btn {
+                width: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="title">AI Fruit Detector</h1>
+        <p class="subtitle">Upload an image and let AI identify your fruit!</p>
+        <div class="subtitle">Supported Fruits ⬇️</div>
+        <div class="fruit-emojis">🍎 🍌 🍒 🥭 🍓</div>
+        <div class="subtitle">Apple | Banana | Cherry | Mango | Strawberry</div>
+
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📸</div>
+            <div class="upload-text">Drag & drop your fruit image here</div>
+            <div style="margin: 15px 0; color: #999;">or</div>
+            <div class="button-group">
+                <button class="btn" onclick="document.getElementById('fileInput').click()">
+                    📁 Choose File
+                </button>
+                <button class="btn btn-camera" onclick="openCamera()">
+                    📷 Take Photo
+                </button>
+            </div>
+            <input type="file" id="fileInput" class="file-input" accept="image/*" onchange="handleFile(this.files[0])">
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p style="margin-top: 15px; color: #666;">Analyzing your fruit...</p>
+        </div>
+
+        <div class="result" id="result">
+            <img id="resultImage" class="result-image" alt="Uploaded fruit">
+            <div class="fruit-name" id="fruitName"></div>
+            <div class="confidence" id="confidence"></div>
+            <div class="all-predictions" id="allPredictions">
+                <h4>All Predictions:</h4>
+                <div id="predictionsList"></div>
+            </div>
+        </div>
+
+        <div class="error" id="error" style="display: none;"></div>
+
+        <button class="btn" onclick="resetApp()" id="resetBtn" style="display: none; margin-top: 20px;">
+            Analyze Another Fruit
+        </button>
+    </div>
+
+    <!-- Camera Modal -->
+    <div class="camera-modal" id="cameraModal">
+        <div class="camera-container">
+            <video id="cameraVideo" class="camera-video" autoplay playsinline></video>
+            <canvas id="cameraCanvas" style="display: none;"></canvas>
+            <div class="camera-controls">
+                <button class="btn btn-capture" onclick="capturePhoto()">
+                    📸 Capture
+                </button>
+                <button class="btn btn-close" onclick="closeCamera()">
+                    ❌ Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const loading = document.getElementById('loading');
+        const result = document.getElementById('result');
+        const error = document.getElementById('error');
+        const resetBtn = document.getElementById('resetBtn');
+        const cameraModal = document.getElementById('cameraModal');
+        const cameraVideo = document.getElementById('cameraVideo');
+        const cameraCanvas = document.getElementById('cameraCanvas');
+        
+        let currentStream = null;
+
+        // Drag and drop functionality
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        // Camera functionality
+        async function openCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        facingMode: 'environment' // Use back camera if available
+                    } 
+                });
+                currentStream = stream;
+                cameraVideo.srcObject = stream;
+                cameraModal.style.display = 'flex';
+            } catch (err) {
+                console.error('Error accessing camera:', err);
+                showError('Unable to access camera. Please check permissions or use file upload instead.');
+            }
+        }
+
+        function closeCamera() {
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+                currentStream = null;
+            }
+            cameraModal.style.display = 'none';
+        }
+
+        function capturePhoto() {
+            const canvas = cameraCanvas;
+            const video = cameraVideo;
+            const context = canvas.getContext('2d');
+
+            // Set canvas dimensions to match video
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+
+            // Draw the video frame to canvas
+            context.drawImage(video, 0, 0);
+
+            // Convert canvas to blob
+            canvas.toBlob((blob) => {
+                closeCamera();
+                
+                // Create a file from the blob
+                const file = new File([blob], 'camera-capture.jpg', { type: 'image/jpeg' });
+                handleFile(file);
+            }, 'image/jpeg', 0.8);
+        }
+
+        function handleFile(file) {
+            if (!file) return;
+
+            // Validate file type
+            if (!file.type.startsWith('image/')) {
+                showError('Please select a valid image file.');
+                return;
+            }
+
+            // Validate file size (16MB max)
+            if (file.size > 16 * 1024 * 1024) {
+                showError('File size must be less than 16MB.');
+                return;
+            }
+
+            uploadImage(file);
+        }
+
+        function uploadImage(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            // Show loading state
+            uploadArea.style.display = 'none';
+            loading.style.display = 'block';
+            hideError();
+
+            fetch('/predict', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                loading.style.display = 'none';
+                
+                if (data.success) {
+                    showResult(data);
+                } else {
+                    showError(data.error || 'An error occurred during prediction.');
+                }
+            })
+            .catch(err => {
+                loading.style.display = 'none';
+                showError('Network error. Please try again.');
+                console.error('Error:', err);
+            });
+        }
+
+        function showResult(data) {
+            document.getElementById('resultImage').src = data.image;
+            document.getElementById('fruitName').textContent = data.fruit;
+            document.getElementById('confidence').textContent = 
+                `Confidence: ${(data.confidence * 100).toFixed(1)}%`;
+
+            // Show all predictions
+            const predictionsList = document.getElementById('predictionsList');
+            predictionsList.innerHTML = '';
+            
+            // Sort predictions by confidence
+            const sortedPredictions = Object.entries(data.all_predictions)
+                .sort(([,a], [,b]) => b - a);
+
+            sortedPredictions.forEach(([fruit, confidence]) => {
+                const item = document.createElement('div');
+                item.className = 'prediction-item';
+                item.innerHTML = `
+                    <span>${fruit}</span>
+                    <span>${(confidence * 100).toFixed(1)}%</span>
+                `;
+                predictionsList.appendChild(item);
+            });
+
+            result.style.display = 'block';
+            resetBtn.style.display = 'inline-block';
+        }
+
+        function showError(message) {
+            error.textContent = message;
+            error.style.display = 'block';
+            uploadArea.style.display = 'block';
+        }
+
+        function hideError() {
+            error.style.display = 'none';
+        }
+
+        function resetApp() {
+            result.style.display = 'none';
+            resetBtn.style.display = 'none';
+            uploadArea.style.display = 'block';
+            fileInput.value = '';
+            hideError();
+        }
+
+        // Close camera modal when clicking outside
+        cameraModal.addEventListener('click', (e) => {
+            if (e.target === cameraModal) {
+                closeCamera();
+            }
+        });
+
+        // Handle escape key to close camera
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && cameraModal.style.display === 'flex') {
+                closeCamera();
+            }
+        });
+
+        // Add some visual feedback
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add subtle animation to the container
+            const container = document.querySelector('.container');
+            container.style.opacity = '0';
+            container.style.transform = 'translateY(20px)';
+            
+            setTimeout(() => {
+                container.style.transition = 'all 0.6s ease';
+                container.style.opacity = '1';
+                container.style.transform = 'translateY(0)';
+            }, 100);
+        });
+    </script>
+</body>
+</html>
